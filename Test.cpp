@@ -11,9 +11,8 @@
 #include <vector>
 #include <thread>
 
-
-//#define DEBUG
-#define TREAD_ON
+#define DEBUG
+//#define TREAD_ON
 
 #ifdef DEBUG
 
@@ -22,10 +21,6 @@
 #include <crtdbg.h>
 
 #endif // DEBUG
-
-
-
-
 
 const int MD5_SIZE = 32; 
 
@@ -44,15 +39,6 @@ void my_itoa (int num, BYTE*  stringNum ,  int size , int  radix =10) {
 			*tp++ = i + 'a' - 10;
 	}
 	int len = tp - tmp;
-	/*
-	for (int i = 0; i <= len && size > 0 ; i++ , size --)
-		if (tp >= tmp) {
-			*--tp;
-			stringNum[size - 1] = tmp[i];
-		}else {
-				stringNum[size - 1] = '0' ;
-		}
-	*/
 	int index{ 0 };
 	while (size) {
 		if (len)  {
@@ -65,8 +51,6 @@ void my_itoa (int num, BYTE*  stringNum ,  int size , int  radix =10) {
 		--size;
 		++index; 
 	}	
-
-
 }
 
 void HashMD5(const BYTE * const data,BYTE * strHash, DWORD* result, int size) {
@@ -77,12 +61,11 @@ void HashMD5(const BYTE * const data,BYTE * strHash, DWORD* result, int size) {
 	HCRYPTHASH cryptHash;
 	BYTE hash[16];
 	const char* hex = "0123456789abcdef";
-	//BYTE strHash[MD5_SIZE] {0};
-	if (!CryptAcquireContext(&cryptProv, NULL, MS_DEF_PROV, PROV_RSA_FULL, CRYPT_VERIFYCONTEXT)) {
+	if (!CryptAcquireContext(&cryptProv, NULL, MS_ENH_RSA_AES_PROV, PROV_RSA_AES, CRYPT_VERIFYCONTEXT))  {
+	//if (!CryptAcquireContext(&cryptProv, NULL, MS_DEF_PROV, PROV_RSA_FULL, CRYPT_VERIFYCONTEXT)) {
 		dwStatus = GetLastError();
 		printf("CryptAcquireContext failed: %d\n", dwStatus);
 		*result = dwStatus;
-		//return NULL;
 	}  // +57kb - течет память. я не понимаю почему. 
 	if (!CryptCreateHash(cryptProv, CALG_MD5, 0, 0, &cryptHash)) {
 		dwStatus = GetLastError();
@@ -96,7 +79,6 @@ void HashMD5(const BYTE * const data,BYTE * strHash, DWORD* result, int size) {
 		CryptReleaseContext(cryptProv, 0);
 		CryptDestroyHash(cryptHash);
 		*result = dwStatus;
-
 	}
 	if (!CryptGetHashParam(cryptHash, HP_HASHVAL, hash, &cbHash, 0)) {
 		dwStatus = GetLastError();
@@ -111,9 +93,8 @@ void HashMD5(const BYTE * const data,BYTE * strHash, DWORD* result, int size) {
 	}
 	CryptReleaseContext(cryptProv, 0);
 	CryptDestroyHash(cryptHash);
-	// не обождает память. 
+	// не обождает память! течет очень страшно. 
 }
-
 
 BYTE* bruteForce(BYTE* const ref,
 				int  size,
@@ -148,7 +129,6 @@ BYTE* bruteForce(BYTE* const ref,
 int main() {
 	SYSTEM_INFO sysinfo;
 	GetSystemInfo(&sysinfo);
-	//int numCPU = sysinfo.dwNumberOfProcessors;
 	
 	setlocale(LC_ALL, "Russian");
 	char * myHashTemp;
@@ -181,7 +161,6 @@ int main() {
 		hash_test[i] = ch; 
 	}
 
-
 #ifdef TREAD_ON
 	std::vector <std::thread > treadRun;
 	int core = sysinfo.dwNumberOfProcessors;
@@ -196,10 +175,7 @@ int main() {
 
 #ifndef TREAD_ON
 	password =  bruteForce(hash_test, 8, 1234567 - 100 , 12345678, 1);
-
 #endif // !TREAD_ON
-
-
 
 #ifdef TREAD_ON
 	while ( !password ) {
@@ -210,8 +186,6 @@ int main() {
 	for (int i = 0; i < 8; i++) {
 		std::cout << password[i];
 	}
-
-	
 #ifdef DEBUG
 	_CrtDumpMemoryLeaks();
 #endif // DEBUG
