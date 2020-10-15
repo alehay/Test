@@ -11,8 +11,8 @@
 #include <vector>
 #include <thread>
 
-#define DEBUG
-//#define TREAD_ON
+//#define DEBUG
+#define TREAD_ON
 
 #ifdef DEBUG
 
@@ -24,6 +24,7 @@
 
 const int MD5_SIZE = 32; 
 
+// пределаня библиотечная версия , оствляет 0 в передих  разрядах в строке С-style 
 void my_itoa (int num, BYTE*  stringNum ,  int size , int  radix =10) {
 	char tmp[16];
 	char* tp = tmp;
@@ -53,6 +54,7 @@ void my_itoa (int num, BYTE*  stringNum ,  int size , int  radix =10) {
 	}	
 }
 
+//вычисленеи HashMD5 основа взята с MSDN .... 
 void HashMD5(const BYTE * const data,BYTE * strHash, DWORD* result, int size) {
 	DWORD dwStatus = 0;
 	DWORD cbHash = 16;
@@ -108,9 +110,7 @@ BYTE* bruteForce(BYTE* const ref,
 	BYTE * buffer = new BYTE[size];
 	for (unsigned int i = start; i <= stop; i += step) {
 		
-		//_itoa_s не работает как надо ....
 		my_itoa(i, buffer, size , 10);
-		
 		HashMD5(buffer, hash, status , size);
 		for (int j = 0; j < MD5_SIZE; j++) {
 			if (ref[j] != hash[j]) {
@@ -139,7 +139,6 @@ int main() {
 	std::ifstream fileIn;
 	fileIn.open(path);
 	BYTE * password = nullptr ;
-	BYTE * password1; 
 
 	if (!fileIn.is_open()) {
 		std::cout << "hash.txt не найден" << std::endl; 
@@ -150,12 +149,11 @@ int main() {
 	if (temp.size() != MD5_SIZE) {
 		std::cout << "не соотвествие длинны ! " << std::endl;
 	}
-
 	for (int i = 0; i < MD5_SIZE; ++i) {
 		BYTE ch;
 		ch = std::tolower(temp.at(i));
 		if (! isxdigit(ch)) {
-			std::cout << "неверный символ ! : " << i + 1 << std::endl;
+			std::cout << "неверный символ ! : " << i << std::endl;
 			break; 
 		}
 		hash_test[i] = ch; 
@@ -164,16 +162,17 @@ int main() {
 #ifdef TREAD_ON
 	std::vector <std::thread > treadRun;
 	int core = sysinfo.dwNumberOfProcessors;
+	// запускаем потоки по одному на ядро. 
 	for (int tr_id = 1; tr_id <= core; ++tr_id) {
 		std::thread th([&password, &hash_test, &core , &tr_id]() {
-			password = bruteForce(hash_test, 8, 800000 + tr_id , 99999999, core);
+			password = bruteForce(hash_test, 8, 0 + tr_id , 99999999, core);
 			});
-		th.detach();
+		th.detach(); // кто первый найдет результат , тот его и запишет
 		treadRun.push_back (move(th));
 	}
 #endif // TREAD_ON
 
-#ifndef TREAD_ON
+#ifndef TREAD_ON // для дебага
 	password =  bruteForce(hash_test, 8, 1234567 - 100 , 12345678, 1);
 #endif // !TREAD_ON
 
@@ -182,7 +181,7 @@ int main() {
 		std::this_thread::sleep_for(std::chrono::microseconds(1000));
 	}
 #endif // TREAD_ON
-
+	
 	for (int i = 0; i < 8; i++) {
 		std::cout << password[i];
 	}
