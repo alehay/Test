@@ -12,7 +12,7 @@
 #include <thread>
 #include <random>
 
-#define DEBUG
+//#define DEBUG
 #define TREAD_ON
 
 #ifdef DEBUG
@@ -45,13 +45,15 @@ void my_itoa (int num, BYTE*  stringNum ,  int size , int  radix =10) {
 	while (size) {
 		if (len)  {
 			stringNum[size - 1] = tmp[index];
-		}
+		  --len;
+          ++index;
+        }
 		else {
 			stringNum[size - 1] = '0';
 		}
-		--len;
+		
 		--size;
-		++index; 
+		
 	}	
 }
 
@@ -105,7 +107,6 @@ BYTE* bruteForce(BYTE* const ref,
 				int step) {
 
 	DWORD* status = 0;
-	char temp[MD5_SIZE];
 	BYTE hash[MD5_SIZE];
 	BYTE * buffer = new BYTE[size];
 	for (unsigned int i = start; i <= stop; i += step) {
@@ -132,7 +133,6 @@ int main() {
 	GetSystemInfo(&sysinfo);
 	
 	setlocale(LC_ALL, "Russian");
-	char * myHashTemp;
 
 	DWORD result = 0;
 	BYTE hash_test[MD5_SIZE] ;
@@ -164,9 +164,9 @@ int main() {
 	std::vector <std::thread > treadRun;
 	int core = sysinfo.dwNumberOfProcessors;
 	// запускаем потоки по одному на ядро. 
-	for (int tr_id = 1; tr_id <= core; ++tr_id) {
+	for (int tr_id = 0; tr_id < core; ++tr_id) {
 		std::thread th([&password, &hash_test, &core , &tr_id]() {
-			password = bruteForce(hash_test, 8, 0 + tr_id + 111111111, 99999999, core);
+			password = bruteForce(hash_test, 8, 0 + tr_id , 99999999, core);
 			});
 		th.detach(); // кто первый найдет результат , тот его и запишет
 		treadRun.push_back (move(th));
@@ -174,12 +174,12 @@ int main() {
 #endif // TREAD_ON
 
 #ifndef TREAD_ON // для дебага
-	password =  bruteForce(hash_test, 8, 1234567 - 1000 , 12345678, 1);
+	password =  bruteForce(hash_test, 8, 0, 12345678, 1);
 #endif // !TREAD_ON
 
 #ifdef TREAD_ON
 	while ( !password ) {
-		std::this_thread::sleep_for(std::chrono::microseconds(1000));
+		std::this_thread::sleep_for(std::chrono::milliseconds(1));
 	}
 #endif // TREAD_ON
 
