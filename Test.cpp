@@ -10,8 +10,9 @@
 #include <chrono>
 #include <vector>
 #include <thread>
+#include <random>
 
-//#define DEBUG
+#define DEBUG
 #define TREAD_ON
 
 #ifdef DEBUG
@@ -63,12 +64,12 @@ void HashMD5(const BYTE * const data,BYTE * strHash, DWORD* result, int size) {
 	HCRYPTHASH cryptHash;
 	BYTE hash[16];
 	const char* hex = "0123456789abcdef";
-	if (!CryptAcquireContext(&cryptProv, NULL, MS_ENH_RSA_AES_PROV, PROV_RSA_AES, CRYPT_VERIFYCONTEXT))  {
-	//if (!CryptAcquireContext(&cryptProv, NULL, MS_DEF_PROV, PROV_RSA_FULL, CRYPT_VERIFYCONTEXT)) {
+
+    if (!CryptAcquireContext(&cryptProv, NULL, NULL, PROV_RSA_AES, CRYPT_VERIFYCONTEXT))  {
 		dwStatus = GetLastError();
 		printf("CryptAcquireContext failed: %d\n", dwStatus);
-		*result = dwStatus;
-	}  // +57kb - течет память. я не понимаю почему. 
+		*result = dwStatus; 
+    }
 	if (!CryptCreateHash(cryptProv, CALG_MD5, 0, 0, &cryptHash)) {
 		dwStatus = GetLastError();
 		printf("CryptCreateHash failed: %d\n", dwStatus);
@@ -78,24 +79,23 @@ void HashMD5(const BYTE * const data,BYTE * strHash, DWORD* result, int size) {
 	if (!CryptHashData(cryptHash, (BYTE*)data, size, 0)) {
 		dwStatus = GetLastError();
 		printf("CryptHashData failed: %d\n", dwStatus);
-		CryptReleaseContext(cryptProv, 0);
-		CryptDestroyHash(cryptHash);
+        CryptDestroyHash(cryptHash);
+        CryptReleaseContext(cryptProv, 0);
 		*result = dwStatus;
 	}
 	if (!CryptGetHashParam(cryptHash, HP_HASHVAL, hash, &cbHash, 0)) {
 		dwStatus = GetLastError();
 		printf("CryptGetHashParam failed: %d\n", dwStatus);
-		CryptReleaseContext(cryptProv, 0);
-		CryptDestroyHash(cryptHash);
+        CryptDestroyHash(cryptHash);
+        CryptReleaseContext(cryptProv, 0);
 		*result = dwStatus;
 	}
 	for (i = 0; i < cbHash; i++) {
 		strHash[i * 2] = hex[hash[i] >> 4];
 		strHash[(i * 2) + 1] = hex[hash[i] & 0xF];
 	}
-	CryptReleaseContext(cryptProv, 0);
-	CryptDestroyHash(cryptHash);
-	// не обождает память! течет очень страшно. 
+    CryptDestroyHash(cryptHash);
+    CryptReleaseContext(cryptProv, 0);
 }
 
 BYTE* bruteForce(BYTE* const ref,
@@ -121,12 +121,13 @@ BYTE* bruteForce(BYTE* const ref,
 			}
 		}
 	}
-	delete buffer;
+	delete [] buffer ;
 	//return NULL; 
 }
 
 
 int main() {
+
 	SYSTEM_INFO sysinfo;
 	GetSystemInfo(&sysinfo);
 	
@@ -165,7 +166,7 @@ int main() {
 	// запускаем потоки по одному на ядро. 
 	for (int tr_id = 1; tr_id <= core; ++tr_id) {
 		std::thread th([&password, &hash_test, &core , &tr_id]() {
-			password = bruteForce(hash_test, 8, 0 + tr_id , 99999999, core);
+			password = bruteForce(hash_test, 8, 0 + tr_id + 111111111, 99999999, core);
 			});
 		th.detach(); // кто первый найдет результат , тот его и запишет
 		treadRun.push_back (move(th));
@@ -173,7 +174,7 @@ int main() {
 #endif // TREAD_ON
 
 #ifndef TREAD_ON // для дебага
-	password =  bruteForce(hash_test, 8, 1234567 - 100 , 12345678, 1);
+	password =  bruteForce(hash_test, 8, 1234567 - 1000 , 12345678, 1);
 #endif // !TREAD_ON
 
 #ifdef TREAD_ON
@@ -181,10 +182,11 @@ int main() {
 		std::this_thread::sleep_for(std::chrono::microseconds(1000));
 	}
 #endif // TREAD_ON
-	
+
 	for (int i = 0; i < 8; i++) {
 		std::cout << password[i];
 	}
+
 #ifdef DEBUG
 	_CrtDumpMemoryLeaks();
 #endif // DEBUG
