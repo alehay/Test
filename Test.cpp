@@ -1,4 +1,6 @@
-﻿#include <windows.h>
+// это мой старый код, когда я только учился програмировать. 
+// это пример плохого кода октябрь 2020
+#include <windows.h>
 #include <stdio.h>
 #include <wincrypt.h>
 #include <iostream>
